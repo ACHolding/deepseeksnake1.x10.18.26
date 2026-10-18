@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS5 · SNAKE · ATARI BEEPS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: #0a0c0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 16px;
+        }
+
+        /* PS5-style main menu card – glassmorphism + blue glow */
+        .menu-wrapper {
+            background: rgba(18, 22, 28, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 48px;
+            padding: 28px 32px 32px 32px;
+            box-shadow:
+                0 30px 40px -15px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(100, 180, 255, 0.2),
+                0 0 40px rgba(0, 150, 255, 0.2);
+            border: 1px solid rgba(90, 170, 255, 0.3);
+            transition: box-shadow 0.2s;
+        }
+
+        .main-menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            margin-bottom: 8px;
+        }
+
+        .ps5-logo {
+            font-weight: 700;
+            font-size: 1.8rem;
+            letter-spacing: 8px;
+            color: #b0d0ff;
+            text-shadow: 0 0 15px #0066ff, 0 0 30px #0044cc;
+            background: linear-gradient(135deg, #e0f0ff, #7fb4ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 4px 6px #00000080);
+        }
+
+        .snake-badge {
+            font-size: 2.2rem;
+            filter: drop-shadow(0 0 12px #00aaff);
+        }
+
+        .menu-title {
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #f0f6ff;
+            text-shadow: 0 0 10px #00aaff, 0 0 30px #0066cc;
+            margin: 0 0 4px 0;
+            word-break: keep-all;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 6px;
+            color: #7a9ec0;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+            font-weight: 400;
+        }
+
+        /* Atari-flavored beep panel */
+        .audio-panel {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            background: rgba(0, 20, 40, 0.7);
+            padding: 10px 24px;
+            border-radius: 60px;
+            border: 1px solid #2a4a6a;
+            box-shadow: inset 0 0 12px #0a1a2a, 0 6px 10px #00000050;
+            margin: 8px 0 6px 0;
+        }
+
+        .audio-panel span {
+            color: #b0d0ff;
+            font-weight: 500;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .beep-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ccff;
+            box-shadow: 0 0 10px #00ccff, 0 0 20px #0088ff;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+
+        .audio-btn {
+            background: #1a2c3c;
+            border: none;
+            color: #b8d4ff;
+            font-weight: 700;
+            font-size: 1.2rem;
+            padding: 8px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 0 #0a121c, 0 0 15px #0055aa;
+            transition: all 0.08s ease;
+            border: 1px solid #2f6a9a;
+            text-transform: uppercase;
+        }
+
+        .audio-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #0a121c, 0 0 20px #0077ff;
+        }
+
+        /* Canvas container – PS5 glow */
+        .canvas-container {
+            background: #05090e;
+            border-radius: 36px;
+            padding: 12px;
+            box-shadow:
+                0 0 0 2px rgba(0, 160, 255, 0.3),
+                0 0 30px #004488,
+                inset 0 0 20px #000000;
+            margin: 10px 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            border-radius: 24px;
+            background: #0b1117;
+            box-shadow: inset 0 0 40px #00000080, 0 0 30px #001122;
+            image-rendering: crisp-edges; /* keep pixel sharp */
+            cursor: pointer;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0 8px;
+            margin-top: 6px;
+            font-weight: 600;
+            text-shadow: 0 0 8px #0088ff;
+        }
+
+        .score, .highscore {
+            background: #0b1a24;
+            padding: 8px 28px;
+            border-radius: 40px;
+            border: 1px solid #1e4a6a;
+            color: #c0e0ff;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            box-shadow: inset 0 0 12px #00000080, 0 0 10px #003366;
+        }
+
+        .highscore {
+            color: #ffd966;
+            text-shadow: 0 0 10px #ffaa00;
+            border-color: #7a6a2a;
+        }
+
+        .controls {
+            font-size: 0.8rem;
+            color: #6a8aa0;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: 8px;
+            display: flex;
+            gap: 30px;
+        }
+
+        .controls kbd {
+            background: #101e2a;
+            padding: 4px 10px;
+            border-radius: 30px;
+            border: 1px solid #2f5a7a;
+            color: #b0d0ff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-wrapper">
+        <!-- PS5 main menu style -->
+        <div class="main-menu">
+            <div class="title-row">
+                <span class="ps5-logo">PS5</span>
+                <span class="snake-badge">🐍</span>
+            </div>
+            <div class="menu-title">SNAKE</div>
+            <div class="subtitle">ATARI EDITION</div>
+
+            <!-- audio beep panel -->
+            <div class="audio-panel">
+                <span><span class="beep-led"></span> BEEP</span>
+                <button class="audio-btn" id="beepButton">🔊 BOOP</button>
+                <span>BOOP</span>
+            </div>
+
+            <!-- game canvas -->
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="500" height="500"></canvas>
+            </div>
+
+            <!-- score + high score -->
+            <div class="score-row">
+                <div class="score" id="scoreDisplay">000</div>
+                <div class="highscore" id="highScoreDisplay">000</div>
+            </div>
+
+            <div class="controls">
+                <span><kbd>←↑↓→</kbd></span>
+                <span><kbd>R</kbd> RESTART</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ---------- PS5 / ATARI AUDIO ENGINE ----------
+            // Simple beeps and boops (square / sawtooth) like Atari
+            let audioCtx = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+
+            // play a beep with given frequency and duration (ms)
+            function playBeep(freq = 440, duration = 0.1, type = 'square', volume = 0.12) {
+                try {
+                    initAudio();
+                    if (!audioCtx) return;
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(volume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch (e) { /* silent */ }
+            }
+
+            // distinct atari-flavored sounds
+            const sound = {
+                eat: () => { playBeep(880, 0.07, 'square', 0.15); setTimeout(() => playBeep(1320, 0.07, 'square', 0.12), 40); },
+                move: () => { playBeep(320, 0.03, 'square', 0.05); },
+                turn: () => { playBeep(440, 0.04, 'sawtooth', 0.08); },
+                crash: () => { playBeep(180, 0.2, 'sawtooth', 0.2); setTimeout(() => playBeep(90, 0.3, 'sawtooth', 0.18), 80); },
+                start: () => { playBeep(660, 0.1, 'square', 0.15); setTimeout(() => playBeep(990, 0.1, 'square', 0.15), 120); },
+                restart: () => { playBeep(523, 0.08, 'square', 0.14); setTimeout(() => playBeep(659, 0.08, 'square', 0.14), 90); }
+            };
+
+            // ---------- GAME CONSTANTS ----------
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const highScoreDisplay = document.getElementById('highScoreDisplay');
+
+            // grid: 20x20 (500/25 = 20) – nice for snake
+            const GRID_SIZE = 20;
+            const CELL_SIZE = canvas.width / GRID_SIZE; // 25px
+
+            // game state
+            let snake = [];               // array of {x, y}
+            let direction = { dx: 1, dy: 0 };   // current movement
+            let nextDirection = { dx: 1, dy: 0 };
+            let food = { x: 8, y: 8 };
+            let score = 0;
+            let highScore = 0;
+
+            let gameOver = false;
+            let gameRunning = false;       // true when snake is moving
+            let winFlag = false;
+
+            // timing
+            let lastUpdate = 0;
+            const MOVE_INTERVAL = 140;     // ms per move (approx 7 fps – classic feel)
+
+            // highscore from storage
+            try {
+                const saved = localStorage.getItem('ps5_snake_high');
+                if (saved) highScore = parseInt(saved, 10) || 0;
+            } catch (e) { /* ignore */ }
+            updateHighScoreDisplay();
+
+            // ---------- HELPER FUNCTIONS ----------
+            function randomGridPos() {
+                return {
+                    x: Math.floor(Math.random() * GRID_SIZE),
+                    y: Math.floor(Math.random() * GRID_SIZE)
+                };
+            }
+
+            // generate food that is not on snake
+            function generateFood() {
+                const maxAttempts = 2000;
+                for (let i = 0; i < maxAttempts; i++) {
+                    const pos = randomGridPos();
+                    if (!snake.some(seg => seg.x === pos.x && seg.y === pos.y)) {
+                        food = pos;
+                        return true;
+                    }
+                }
+                // if board is nearly full, try scanning all cells
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (!snake.some(seg => seg.x === x && seg.y === y)) {
+                            food = { x, y };
+                            return true;
+                        }
+                    }
+                }
+                return false; // board full -> win condition
+            }
+
+            // reset everything
+            function resetGame(playSound = true) {
+                // initial snake: length 3, horizontal
+                snake = [
+                    { x: 9, y: 10 },
+                    { x: 8, y: 10 },
+                    { x: 7, y: 10 }
+                ];
+                direction = { dx: 1, dy: 0 };
+                nextDirection = { dx: 1, dy: 0 };
+                score = 0;
+                gameOver = false;
+                winFlag = false;
+                gameRunning = true;
+                updateScoreDisplay();
+
+                // place food not on snake
+                if (!generateFood()) {
+                    // extremely unlikely – but if snake already covers everything (impossible)
+                    food = { x: 15, y: 15 };
+                }
+
+                if (playSound) sound.restart();
+                lastUpdate = performance.now();
+                draw();
+            }
+
+            // update UI score
+            function updateScoreDisplay() {
+                scoreDisplay.textContent = String(score).padStart(3, '0');
+                if (score > highScore) {
+                    highScore = score;
+                    try { localStorage.setItem('ps5_snake_high', highScore); } catch (e) {}
+                }
+                updateHighScoreDisplay();
+            }
+
+            function updateHighScoreDisplay() {
+                highScoreDisplay.textContent = String(highScore).padStart(3, '0');
+            }
+
+            // ---------- GAME LOGIC ----------
+            function moveSnake() {
+                if (gameOver || !gameRunning) return;
+
+                // commit next direction (no reversing)
+                if ((nextDirection.dx !== 0 || nextDirection.dy !== 0) &&
+                    (direction.dx !== -nextDirection.dx || direction.dy !== -nextDirection.dy)) {
+                    direction = { ...nextDirection };
+                }
+
+                const head = snake[0];
+                const newHead = {
+                    x: head.x + direction.dx,
+                    y: head.y + direction.dy
+                };
+
+                // check wall collision
+                if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
+                    triggerGameOver();
+                    return;
+                }
+
+                // check food collision before moving (we need to know if we grow)
+                const eating = (newHead.x === food.x && newHead.y === food.y);
+
+                // build new snake array (unshift new head)
+                const newSnake = [newHead, ...snake];
+
+                if (!eating) {
+                    // remove tail
+                    newSnake.pop();
+                }
+
+                // check self-collision (head collides with body)
+                const headCollision = newSnake.slice(1).some(seg => seg.x === newHead.x && seg.y === newHead.y);
+                if (headCollision) {
+                    triggerGameOver();
+                    return;
+                }
+
+                // apply new snake
+                snake = newSnake;
+
+                // handle food / growth
+                if (eating) {
+                    score++;
+                    updateScoreDisplay();
+                    sound.eat();
+
+                    // try to generate new food
+                    if (!generateFood()) {
+                        // no free cells -> win!
+                        winFlag = true;
+                        gameRunning = false;
+                        sound.start(); // victory beeps
+                        setTimeout(() => playBeep(1320, 0.15, 'square', 0.2), 150);
+                        setTimeout(() => playBeep(1760, 0.2, 'square', 0.2), 300);
+                    }
+                } else {
+                    // tiny move sound (very quiet, just for Atari feel)
+                    if (Math.random() < 0.3) sound.move(); // not every move to avoid annoyance
+                }
+
+                draw();
+            }
+
+            function triggerGameOver() {
+                if (gameOver) return;
+                gameOver = true;
+                gameRunning = false;
+                sound.crash();
+                draw(); // draw game over overlay
+            }
+
+            // ---------- RENDERING (PS5 style graphics) ----------
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // --- background: dark grid with subtle PS5 blue glow ---
+                ctx.fillStyle = '#0b1117';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // draw grid lines (very subtle)
+                ctx.strokeStyle = '#1a2a3a';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= GRID_SIZE; i++) {
+                    const pos = i * CELL_SIZE;
+                    ctx.beginPath();
+                    ctx.moveTo(pos, 0);
+                    ctx.lineTo(pos, canvas.height);
+                    ctx.strokeStyle = '#15202b';
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, pos);
+                    ctx.lineTo(canvas.width, pos);
+                    ctx.stroke();
+                }
+
+                // --- draw food (glowing PS5 orb) ---
+                if (food) {
+                    const fx = food.x * CELL_SIZE + CELL_SIZE / 2;
+                    const fy = food.y * CELL_SIZE + CELL_SIZE / 2;
+                    const radius = CELL_SIZE * 0.4;
+
+                    // outer glow
+                    ctx.shadowColor = '#00aaff';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ccff';
+                    ctx.fill();
+
+                    // inner bright core
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, radius * 0.7, 0, Math.PI * 2);
+                    ctx.fillStyle = '#aae0ff';
+                    ctx.fill();
+
+                    // center white dot
+                    ctx.shadowBlur = 30;
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, radius * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+
+                    // reset shadow
+                    ctx.shadowBlur = 0;
+                    ctx.shadowColor = 'transparent';
+                }
+
+                // --- draw snake (PS5 sleek + atari blocky glow) ---
+                for (let i = 0; i < snake.length; i++) {
+                    const seg = snake[i];
+                    const x = seg.x * CELL_SIZE;
+                    const y = seg.y * CELL_SIZE;
+                    const padding = i === 0 ? 2 : 4; // head slightly bigger
+                    const size = CELL_SIZE - padding * 2;
+
+                    // head is brighter, body gradient
+                    if (i === 0) {
+                        // HEAD: white-blue with intense glow
+                        ctx.shadowColor = '#00aaff';
+                        ctx.shadowBlur = 25;
+                        ctx.fillStyle = '#e0f0ff';
+                        ctx.beginPath();
+                        ctx.roundRect(x + padding, y + padding, size, size, 6);
+                        ctx.fill();
+
+                        // inner bright
+                        ctx.shadowBlur = 20;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.roundRect(x + padding + 2, y + padding + 2, size - 4, size - 4, 4);
+                        ctx.fill();
+
+                        // eyes (tiny PS5 style)
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#0055aa';
+                        const eyeSize = size * 0.18;
+                        const eyeOffset = size * 0.28;
+                        ctx.beginPath();
+                        ctx.arc(x + padding + eyeOffset, y + padding + eyeOffset, eyeSize, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(x + padding + size - eyeOffset, y + padding + eyeOffset, eyeSize, 0, 2 * Math.PI);
+                        ctx.fill();
+                    } else {
+                        // BODY: gradient from cyan to blue, with glow
+                        const intensity = 0.7 + (i % 2) * 0.15;
+                        ctx.shadowColor = '#0088ff';
+                        ctx.shadowBlur = 15;
+                        ctx.fillStyle = `rgb(60, 180, 255)`;
+                        ctx.beginPath();
+                        ctx.roundRect(x + padding, y + padding, size, size, 4);
+                        ctx.fill();
+
+                        // inner highlight
+                        ctx.shadowBlur = 8;
+                        ctx.fillStyle = `rgba(200, 230, 255, ${0.3 + (i % 2) * 0.1})`;
+                        ctx.beginPath();
+                        ctx.roundRect(x + padding + 2, y + padding + 2, size - 4, size - 4, 3);
+                        ctx.fill();
+                    }
+                }
+                // reset shadow
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'transparent';
+
+                // --- game over / win overlay ---
+                if (gameOver) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = 'bold 40px "Segoe UI", "Inter", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = '#00aaff';
+                    ctx.shadowBlur = 30;
+                    ctx.fillStyle = '#f0f8ff';
+                    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.font = '24px "Segoe UI", sans-serif';
+                    ctx.fillStyle = '#b0d0ff';
+                    ctx.fillText('PRESS R', canvas.width / 2, canvas.height / 2 + 40);
+                    ctx.shadowBlur = 0;
+                } else if (winFlag) {
+                    ctx.fillStyle = 'rgba(0, 30, 60, 0.8)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = 'bold 44px "Segoe UI", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = '#00ffcc';
+                    ctx.shadowBlur = 40;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.font = '24px "Segoe UI", sans-serif';
+                    ctx.fillStyle = '#aaffdd';
+                    ctx.fillText('PRESS R', canvas.width / 2, canvas.height / 2 + 40);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // roundRect helper (canvas may not have native roundRect on older browsers)
+            if (!CanvasRenderingContext2D.prototype.roundRect) {
+                CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                    if (w < 2 * r) r = w / 2;
+                    if (h < 2 * r) r = h / 2;
+                    this.moveTo(x + r, y);
+                    this.lineTo(x + w - r, y);
+                    this.quadraticCurveTo(x + w, y, x + w, y + r);
+                    this.lineTo(x + w, y + h - r);
+                    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                    this.lineTo(x + r, y + h);
+                    this.quadraticCurveTo(x, y + h, x, y + h - r);
+                    this.lineTo(x, y + r);
+                    this.quadraticCurveTo(x, y, x + r, y);
+                    this.closePath();
+                    return this;
+                };
+            }
+
+            // ---------- INPUT HANDLING ----------
+            function handleKeyDown(e) {
+                const key = e.key;
+                // prevent arrow scrolling
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'r', 'R'].includes(key)) {
+                    e.preventDefault();
+                }
+
+                // restart on R
+                if (key === 'r' || key === 'R') {
+                    resetGame(true);
+                    return;
+                }
+
+                if (gameOver || winFlag) return;
+
+                // direction changes (no reversal)
+                if (key === 'ArrowUp' && direction.dy !== 1) {
+                    nextDirection = { dx: 0, dy: -1 };
+                    sound.turn();
+                } else if (key === 'ArrowDown' && direction.dy !== -1) {
+                    nextDirection = { dx: 0, dy: 1 };
+                    sound.turn();
+                } else if (key === 'ArrowLeft' && direction.dx !== 1) {
+                    nextDirection = { dx: -1, dy: 0 };
+                    sound.turn();
+                } else if (key === 'ArrowRight' && direction.dx !== -1) {
+                    nextDirection = { dx: 1, dy: 0 };
+                    sound.turn();
+                }
+            }
+
+            // also allow WASD silently (optional, but no sound to keep it clean)
+            function handleKeyDownWASD(e) {
+                const key = e.key.toLowerCase();
+                if (['w', 'a', 's', 'd'].includes(key)) {
+                    e.preventDefault();
+                }
+                if (gameOver || winFlag) return;
+                if (key === 'w' && direction.dy !== 1) {
+                    nextDirection = { dx: 0, dy: -1 };
+                    sound.turn();
+                } else if (key === 's' && direction.dy !== -1) {
+                    nextDirection = { dx: 0, dy: 1 };
+                    sound.turn();
+                } else if (key === 'a' && direction.dx !== 1) {
+                    nextDirection = { dx: -1, dy: 0 };
+                    sound.turn();
+                } else if (key === 'd' && direction.dx !== -1) {
+                    nextDirection = { dx: 1, dy: 0 };
+                    sound.turn();
+                }
+            }
+
+            // touch / click to restart (also for mobile)
+            canvas.addEventListener('click', () => {
+                if (gameOver || winFlag) {
+                    resetGame(true);
+                } else {
+                    // also give a tiny beep on click (audio unlock)
+                    playBeep(660, 0.05, 'square', 0.08);
+                }
+            });
+
+            // main audio button (beep + boop)
+            document.getElementById('beepButton').addEventListener('click', (e) => {
+                e.stopPropagation();
+                initAudio();
+                // classic Atari style double beep
+                playBeep(1046, 0.08, 'square', 0.15);
+                setTimeout(() => playBeep(1318, 0.1, 'square', 0.15), 90);
+                setTimeout(() => playBeep(1568, 0.08, 'square', 0.12), 200);
+            });
+
+            // ---------- GAME LOOP ----------
+            function gameLoop(now) {
+                if (gameRunning && !gameOver && !winFlag) {
+                    if (now - lastUpdate >= MOVE_INTERVAL) {
+                        moveSnake();
+                        lastUpdate = now;
+                    }
+                }
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ---------- INIT ----------
+            function init() {
+                // set up initial snake and start
+                resetGame(false); // silent start, we'll beep on first interaction
+                // start audio on first user gesture (browser policy)
+                window.addEventListener('keydown', function unlockAudio() {
+                    initAudio();
+                    window.removeEventListener('keydown', unlockAudio);
+                }, { once: true });
+
+                // add listeners
+                window.addEventListener('keydown', handleKeyDown);
+                window.addEventListener('keydown', handleKeyDownWASD);
+
+                // start loop
+                requestAnimationFrame(gameLoop);
+
+                // tiny startup sound (delayed to allow audio context after gesture)
+                setTimeout(() => {
+                    // but only if user has interacted? we don't force.
+                }, 50);
+            }
+
+            // go
+            init();
+        })();
+    </script>
+</body>
+</html>
